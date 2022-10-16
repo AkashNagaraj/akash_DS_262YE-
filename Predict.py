@@ -12,8 +12,7 @@ import math
 from math import radians, cos, sin, asin, sqrt
 
 df = pd.read_parquet('./../data/BMTC.parquet.gzip', engine='pyarrow') # This command loads BMTC data into a dataframe. 
-                                                                      # In case of error, install pyarrow using: 
-                                                                      # pip install pyarrow
+
 dfInput = pd.read_csv('./../data/Input.csv')
 dfGroundTruth = pd.read_csv('./../data/GroundTruth.csv') 
 # NOTE: The file GroundTruth.csv is for participants to assess the performance their own codes
@@ -60,10 +59,39 @@ def total_loss():
     dfOutput = Sample_EstimatedTravelTime(df, dfInput)    
     print(sum(abs(dfOutput['ETT'] - dfGroundTruth['TT'])))
 
-    """
-    print(df.head(n=5))
-    print(dfOutput.head(n=5))
-    print(dfGroundTruth.head(n=5))
-    """
+    
+def location_matrix():
+    r, c, d = 64, 64, 30 # row and column = 64, distance travelled is 30 meters
+    
+    for long, lat in ():
+        
+        # Current longitude, latitude vs next long, lat
+        #distance_travelled()
 
-total_loss()
+        # Find all BusID in a given longitude and latitude
+        all_bus_ID()
+        
+        # Determine if bus is in motion or not (If 5 consective speed is 0 ignore)
+        bus_motion() # get 1/0 values
+
+        # Is the bus in the current location
+        start_location_time = ""
+        if bus_long<x+1 and bus_long>x and bus_long>y and bus_long<y+1:
+            end_location_time = ""
+
+        diff = end_location_time-start_location_time
+
+
+def modelflow():
+       
+    # Build a matrix 
+    location_matrix()
+
+    # Create batches, choose data points only if  
+
+
+    print(len(df)//len(set(df['BusID'])))
+    print(df.head())
+    #print(dfGroundTruth.head(n=5))
+    
+modelflow()

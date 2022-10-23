@@ -1,15 +1,10 @@
-"""
-This Python code snippet serves two purposes:
-1. illustrates how to use relative path
-2. provides the template for code submission
-ASSUMPTION: 
-1. This Python code is present in the folder 'srika_DS_456AB'.
-2. BMTC.parquet.gzip, Input.csv, and GroundTruth.csv are present in the folder 'data'
-"""
+
 import pandas as pd
-# import other packages here
+import numpy as np
 import math
 from math import radians, cos, sin, asin, sqrt
+
+import sys, time
 
 df = pd.read_parquet('./../data/BMTC.parquet.gzip', engine='pyarrow') # This command loads BMTC data into a dataframe. 
 
@@ -82,6 +77,57 @@ def location_matrix():
         diff = end_location_time-start_location_time
 
 
+def find_location(x_start,x_end,y_start,y_end):
+    
+    temp = pd.DataFrame(df[df['Longitude'].between(x_start,x_end,inclusive="both")]) # Includes the start and end range, add neither to exclude them
+    avg = sum(temp[temp['Latitude'].between(y_start,y_end,inclusive="both")]['Speed'])/len(temp['Speed'])
+    
+    if avg==0:
+        X = temp
+        Y = pd.DataFrame(df[df['Latitude'].between(y_start,y_end,inclusive="both")])
+        assert sum(temp[temp['Latitude'].between(y_start,y_end,inclusive="both")]['Speed']) == 0 , "There is data : {} ".format(temp[temp['Latitude'].between(y_start,y_end,inclusive="both")]['Speed']) 
+
+        #format(set(X['Latitude']).intersection(set(Y['Latitude'])))
+    
+    del temp
+
+    return round(avg, 4) # Round average minutes to 3 decimals
+
+
+def location_matrix():
+    
+    c = 64
+    r = 64
+
+    min_latitude, max_latitude = min(df['Latitude']), max(df['Latitude'])
+    min_longitude, max_longitude = min(df['Longitude']), max(df['Longitude'])
+
+    lat1, lat2 = min_longitude, max_longitude
+    long1, long2 = max_latitude, min_latitude
+    
+    #print("latitude : {} longitude : {}".format((lat1,lat2),(long1,long2)))
+    #top_left, top_right, bottom_left, bottom_right
+
+    horizontal_dist = abs(lat1 - lat2)
+    vertical_dist = abs(long1 - long2)
+
+    single_row_size = vertical_dist/r # Divide the heigth by r
+    single_col_size = horizontal_dist/c # Divide the width by c
+
+    print("horizontal_dist : {}, vertical_dist : {}, single_row_size : {}, single_col_size : {} ".format(horizontal_dist, vertical_dist, single_row_size, single_col_size))
+    
+    start = time.time()
+    location_matrix = []    
+    for i in range(0,c-1): # Traverse 'c' columns
+        column_data = []
+        for j in range(0,r-1): # Traverse 'r' rows
+            val = find_location(lat1+single_col_size*j,lat1+single_col_size*(j+1),long1-single_row_size*(i+1),long1-single_row_size*(i))
+            column_data.append(val)
+        location_matrix.append(column_data)
+    
+    print("Time taken to build matrix in seconds : {}".format((time.time()-start)))
+    print(location_matrix)
+
 def modelflow():
        
     # Build a matrix 
@@ -89,9 +135,6 @@ def modelflow():
 
     # Create batches, choose data points only if  
 
-
-    print(len(df)//len(set(df['BusID'])))
-    print(df.head())
     #print(dfGroundTruth.head(n=5))
     
 modelflow()

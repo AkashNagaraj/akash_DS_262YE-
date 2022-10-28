@@ -1,0 +1,16 @@
+batch = 64
+r, c = 64, 50
+batch_size, learning_rate, epochs = 64, 0.05, 200
+Max loss : 41.46090629588944, min loss : 9.984050881755314
+Max loss : 36.217491088400685, min loss : 11.03461825944963
+
+batch = 64
+r, c = 64, 50
+Max loss : 45.94866270910356, min loss : 9.85875825513018
+
+batch = 32
+r,c = 32,32
+Max loss : 37.48190716570384, min loss : 9.6323393163836
+Max loss : 27.169908465786555, min loss : 10.209884401303501
+Max loss : 31.17294109413033, min loss : 8.577815734708324
+

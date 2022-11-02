@@ -42,20 +42,26 @@ def box_cox_transformation():
         if val==0:
             data4[idx] = np.log(min_element4+1)
 
-    fitted_data1, fitted_lambda1 = stats.boxcox(data1)
-    fitted_data2, fitted_lambda2 = stats.boxcox(data2)
-    fitted_data3, fitted_lambda3 = stats.boxcox(data3)
-    fitted_data4, fitted_lambda4 = stats.boxcox(data4)
-   
-    assert fitted_lambda1!=0 and fitted_lambda2!=0 and fitted_lambda3!=0 and fitted_lambda4!=0, print("Lambda is zero so for prediction use exp(wt)")
+    fitted_data1, l1 = stats.boxcox(data1)
+    fitted_data2, l2 = stats.boxcox(data2)
+    fitted_data3, l3 = stats.boxcox(data3)
+    fitted_data4, l4 = stats.boxcox(data4)
+    
+    # Adding Relu activation here
+    fitted_data1[fitted_data1<0] = 0
+    fitted_data2[fitted_data2<0] = 0
+    fitted_data3[fitted_data3<0] = 0
+    fitted_data4[fitted_data4<0] = 0
+    
+    lambda_data = (l1,l2,l3,l4)
 
-    return fitted_data1, fitted_data2, fitted_data3, fitted_data4
+    return fitted_data1, fitted_data2, fitted_data3, fitted_data4, lambda_data
 
 
 def transform_data():
     
     #print(min(data1), min(data2),min(data3),min(data4))
-    fitted_data1, fitted_data2, fitted_data3, fitted_data4 = box_cox_transformation()
+    fitted_data1, fitted_data2, fitted_data3, fitted_data4, lambda_data = box_cox_transformation()
 
     fitted_data1 = fitted_data1.reshape(r,c)
     fitted_data2 = fitted_data2.reshape(r,c)
@@ -74,11 +80,13 @@ def transform_data():
     location_dataframe4 = pd.DataFrame(data=np.array(fitted_data4),columns=latitude,index=longitude)
     location_dataframe4.to_csv('../data/_transformed_location_matrix4.csv')
  
-    test_df = pd.read_csv("../data/_transformed_location_matrix1.csv") 
-    print(test_df.head
-            )
+    #test_df = pd.read_csv("../data/_transformed_location_matrix1.csv") 
+    #print(test_df.head)
 
-def main():
+    return lambda_data
+
+
+def main_transformation_function():
     
     global r,c
     global latitude, longitude
@@ -105,8 +113,9 @@ def main():
 
     #qqplot() #The data does not seem to be normally distributed based on QQ plot
     #shapiro_wilk_test() #The p-value is ~0 so the data is not normally distributed  
-    transform_data()
-   
+    lambda_data = transform_data()
+    
+    return lambda_data
 
 if __name__=="__main__":
     main()

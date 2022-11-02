@@ -12,5 +12,37 @@ batch = 32
 r,c = 32,32
 Max loss : 37.48190716570384, min loss : 9.6323393163836
 Max loss : 27.169908465786555, min loss : 10.209884401303501
-Max loss : 31.17294109413033, min loss : 8.577815734708324
+Max loss : 31.17294109413033, min loss : 8.57781573470832    
 
+Box-cox=False
+batch_size, learning_rate, epochs = 64, 0.05, 45 
+Max loss : 45.678137411070686, min loss : 9.696775643629001
+The total L1 loss is :  10.410918158547167
+
+batch_size=32, box_cox = False
+Max loss : 45.3316378265025, min loss : 9.483527170503347
+The total L1 loss is :  10.65943883475897
+
+batch_size = 128, box_cox = False
+Max loss : 44.344356840111864, min loss : 10.621283646718691
+The total L1 loss is :  10.05616580259075
+
+box_cox = True
+batch_size, learning_rate, epochs = 64, 0.001, 100
+Max loss : 48.35795596498107, min loss : 10.04080661664231
+The total L1 loss is :  12.74412767699917
+
+batch_size, learning_rate, epochs = 64, 0.001, 150
+Max loss : 42.400821023286724, min loss : 8.321146951970789
+The total L1 loss is :  10.53619412724534
+
+batch_size, learning_rate, epochs = 64, 0.001, 200
+Max loss : 33.50429122529046, min loss : 6.406622394556184
+The total L1 loss is :  8.41847467091663
+
+Same as above but lambda was obtained and passed
+Max loss : 34.6984600099195, min loss : 6.6332674170585895
+The total L1 loss is :  8.66549338874402
+
+Observations - 
+Increase batch_size till 128

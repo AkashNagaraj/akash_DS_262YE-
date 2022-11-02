@@ -1,9 +1,12 @@
+from data_transformation import main_transformation_function
 
+import more_itertools
 import pandas as pd
 import geopy.distance
 import numpy as np
 import sklearn
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 
 import math
 from math import radians, cos, sin, asin, sqrt
@@ -264,7 +267,18 @@ def time_taken(P1,P2,P3,P4):
     return time_P1+time_P2+time_P3+time_P4
 
 
-def path_of_points(X,Y):
+def relu(x):
+    return max(0.0,x)
+
+
+def invboxcox(y,ld):
+    if ld == 0:
+        return(relu(np.exp(y)))
+    else:
+        return(relu(np.exp(np.log(ld*y+1)/ld))) 
+
+
+def box_cox_path_of_points(X,Y, box_cox):
 
     location_matrix1 = np.array(location_df1)    
     location_matrix2 = np.array(location_df2)
@@ -283,19 +297,22 @@ def path_of_points(X,Y):
     path = [] # Used to keep track of the datapoints that were used 
     
     P11,P12,P21,P22,P31,P32,P41,P42 = 0,0,0,0,0,0,0,0
+    
 
+    #l1,l2,l3,l4 = 0.1,0.1,0.1,0.1
+    
     try:
-        P11 += np.square(location_matrix1[r1,c1]*Weight_matrix1[r1,c1])
-        P12 += np.square(location_matrix1[r2,c2]*Weight_matrix1[r2,c2])
+        P11 += np.square(invboxcox(location_matrix1[r1,c1]*Weight_matrix1[r1,c1],l1))
+        P12 += np.square(invboxcox(location_matrix1[r2,c2]*Weight_matrix1[r2,c2],l1))
         
-        P21 += np.square(location_matrix2[r1,c1]*Weight_matrix2[r1,c1])
-        P22 += np.square(location_matrix2[r2,c2]*Weight_matrix2[r2,c2])
+        P21 += np.square(invboxcox(location_matrix2[r1,c1]*Weight_matrix2[r1,c1],l2))
+        P22 += np.square(invboxcox(location_matrix2[r2,c2]*Weight_matrix2[r2,c2],l2))
         
-        P31 += np.square(location_matrix3[r1,c1]*Weight_matrix3[r1,c1])
-        P32 += np.square(location_matrix3[r2,c2]*Weight_matrix3[r2,c2])
+        P31 += np.square(invboxcox(location_matrix3[r1,c1]*Weight_matrix3[r1,c1],l3))
+        P32 += np.square(invboxcox(location_matrix3[r2,c2]*Weight_matrix3[r2,c2],l3))
 
-        P41 += np.square(location_matrix4[r1,c1]*Weight_matrix4[r1,c1])
-        P42 += np.square(location_matrix4[r2,c2]*Weight_matrix4[r2,c2])
+        P41 += np.square(invboxcox(location_matrix4[r1,c1]*Weight_matrix4[r1,c1],l4))
+        P42 += np.square(invboxcox(location_matrix4[r2,c2]*Weight_matrix4[r2,c2],l4))
 
         path.append((r1,c1))
         path.append((r2,c2))
@@ -307,32 +324,32 @@ def path_of_points(X,Y):
     
     for i in range(1,abs_row_val): # Start at 1 because we ignore current postion since it is already in the initialization
         if r1<r2:
-            P11 += np.square(location_matrix1[r1+i,c1]*Weight_matrix1[r1+i,c1])
-            P12 += np.square(location_matrix1[r2-i,c2]*Weight_matrix1[r2-i,c2])
+            P11 += np.square(invboxcox(location_matrix1[r1+i,c1]*Weight_matrix1[r1+i,c1],l1))
+            P12 += np.square(invboxcox(location_matrix1[r2-i,c2]*Weight_matrix1[r2-i,c2],l1))
             
-            P21 += np.square(location_matrix2[r1+i,c1]*Weight_matrix2[r1+i,c1])
-            P22 += np.square(location_matrix2[r2-i,c2]*Weight_matrix2[r2-i,c2])
+            P21 += np.square(invboxcox(location_matrix2[r1+i,c1]*Weight_matrix2[r1+i,c1],l2))
+            P22 += np.square(invboxcox(location_matrix2[r2-i,c2]*Weight_matrix2[r2-i,c2],l2))
             
-            P31 += np.square(location_matrix3[r1+i,c1]*Weight_matrix3[r1+i,c1])
-            P32 += np.square(location_matrix3[r2-i,c2]*Weight_matrix3[r2-i,c2])
+            P31 += np.square(invboxcox(location_matrix3[r1+i,c1]*Weight_matrix3[r1+i,c1],l3))
+            P32 += np.square(invboxcox(location_matrix3[r2-i,c2]*Weight_matrix3[r2-i,c2],l3))
 
-            P41 += np.square(location_matrix4[r1+i,c1]*Weight_matrix4[r1+i,c1])
-            P42 += np.square(location_matrix4[r2-i,c2]*Weight_matrix4[r2-i,c2])
+            P41 += np.square(invboxcox(location_matrix4[r1+i,c1]*Weight_matrix4[r1+i,c1],l4))
+            P42 += np.square(invboxcox(location_matrix4[r2-i,c2]*Weight_matrix4[r2-i,c2],l4))
 
             path.append((r1+i,c1))
             path.append((r2-i,c2))
         elif r1>r2:
-            P11 += np.square(location_matrix1[r1-i,c1]*Weight_matrix1[r1-i,c1])
-            P12 += np.square(location_matrix1[r2+i,c2]*Weight_matrix1[r2+i,c2])
+            P11 += np.square(invboxcox(location_matrix1[r1-i,c1]*Weight_matrix1[r1-i,c1],l1))
+            P12 += np.square(invboxcox(location_matrix1[r2+i,c2]*Weight_matrix1[r2+i,c2],l1))
             
-            P21 += np.square(location_matrix2[r1-i,c1]*Weight_matrix2[r1-i,c1])
-            P22 += np.square(location_matrix2[r2+i,c2]*Weight_matrix2[r2+i,c2])
+            P21 += np.square(invboxcox(location_matrix2[r1-i,c1]*Weight_matrix2[r1-i,c1],l2))
+            P22 += np.square(invboxcox(location_matrix2[r2+i,c2]*Weight_matrix2[r2+i,c2],l2))
             
-            P31 += np.square(location_matrix3[r1-i,c1]*Weight_matrix3[r1-i,c1])
-            P32 += np.square(location_matrix3[r2+i,c2]*Weight_matrix3[r2+i,c2])
+            P31 += np.square(invboxcox(location_matrix3[r1-i,c1]*Weight_matrix3[r1-i,c1],l3))
+            P32 += np.square(invboxcox(location_matrix3[r2+i,c2]*Weight_matrix3[r2+i,c2],l3))
             
-            P41 += np.square(location_matrix4[r1-i,c1]*Weight_matrix4[r1-i,c1])
-            P42 += np.square(location_matrix4[r2+i,c2]*Weight_matrix4[r2+i,c2])
+            P41 += np.square(invboxcox(location_matrix4[r1-i,c1]*Weight_matrix4[r1-i,c1],l4))
+            P42 += np.square(invboxcox(location_matrix4[r2+i,c2]*Weight_matrix4[r2+i,c2],l4))
 
             path.append((r1-i,c1))
             path.append((r2+i,c2))
@@ -340,42 +357,41 @@ def path_of_points(X,Y):
     abs_col_val = abs(c1-c2)
     for j in range(1,abs_col_val):
         if c1<c2:
-            P11 += np.square(location_matrix1[r1,c1+j]*Weight_matrix1[r1,c1+j])
-            P12 += np.square(location_matrix1[r2,c2-j]*Weight_matrix1[r2,c2-j])
+            P11 += np.square(invboxcox(location_matrix1[r1,c1+j]*Weight_matrix1[r1,c1+j],l1))
+            P12 += np.square(invboxcox(location_matrix1[r2,c2-j]*Weight_matrix1[r2,c2-j],l1))
 
-            P21 += np.square(location_matrix2[r1,c1+j]*Weight_matrix2[r1,c1+j])
-            P22 += np.square(location_matrix2[r2,c2-j]*Weight_matrix2[r2,c2-j])
+            P21 += np.square(invboxcox(location_matrix2[r1,c1+j]*Weight_matrix2[r1,c1+j],l2))
+            P22 += np.square(invboxcox(location_matrix2[r2,c2-j]*Weight_matrix2[r2,c2-j],l2))
 
-            P31 += np.square(location_matrix3[r1,c1+j]*Weight_matrix3[r1,c1+j])
-            P32 += np.square(location_matrix3[r2,c2-j]*Weight_matrix3[r2,c2-j])
+            P31 += np.square(invboxcox(location_matrix3[r1,c1+j]*Weight_matrix3[r1,c1+j],l3))
+            P32 += np.square(invboxcox(location_matrix3[r2,c2-j]*Weight_matrix3[r2,c2-j],l3))
 
-            P41 += np.square(location_matrix4[r1,c1+j]*Weight_matrix4[r1,c1+j])
-            P42 += np.square(location_matrix4[r2,c2-j]*Weight_matrix4[r2,c2-j])
+            P41 += np.square(invboxcox(location_matrix4[r1,c1+j]*Weight_matrix4[r1,c1+j],l4))
+            P42 += np.square(invboxcox(location_matrix4[r2,c2-j]*Weight_matrix4[r2,c2-j],l4))
 
             path.append((r1,c1+j))
             path.append((r2,c2-j))
         elif c1>c2:
-            P11 += np.square(location_matrix1[r1,c1-j]*Weight_matrix1[r1,c1-j])
-            P12 += np.square(location_matrix1[r2,c2+j]*Weight_matrix1[r2,c2+j])
+            P11 += np.square(invboxcox(location_matrix1[r1,c1-j]*Weight_matrix1[r1,c1-j],l1))
+            P12 += np.square(invboxcox(location_matrix1[r2,c2+j]*Weight_matrix1[r2,c2+j],l1))
             
-            P21 += np.square(location_matrix2[r1,c1-j]*Weight_matrix2[r1,c1-j])
-            P22 += np.square(location_matrix2[r2,c2+j]*Weight_matrix2[r2,c2+j])
+            P21 += np.square(invboxcox(location_matrix2[r1,c1-j]*Weight_matrix2[r1,c1-j],l2))
+            P22 += np.square(invboxcox(location_matrix2[r2,c2+j]*Weight_matrix2[r2,c2+j],l2))
 
-            P31 += np.square(location_matrix3[r1,c1-j]*Weight_matrix3[r1,c1-j])
-            P32 += np.square(location_matrix3[r2,c2+j]*Weight_matrix3[r2,c2+j])
+            P31 += np.square(invboxcox(location_matrix3[r1,c1-j]*Weight_matrix3[r1,c1-j],l3))
+            P32 += np.square(invboxcox(location_matrix3[r2,c2+j]*Weight_matrix3[r2,c2+j],l3))
 
-            P41 += np.square(location_matrix4[r1,c1-j]*Weight_matrix4[r1,c1-j])
-            P42 += np.square(location_matrix4[r2,c2+j]*Weight_matrix4[r2,c2+j])
+            P41 += np.square(invboxcox(location_matrix4[r1,c1-j]*Weight_matrix4[r1,c1-j],l4))
+            P42 += np.square(invboxcox(location_matrix4[r2,c2+j]*Weight_matrix4[r2,c2+j],l4))
             
             path.append((r1,c1-j))
             path.append((r2,c2+j))
-    
     
     # Add CNN bias here
     return(time_taken((P11,P12),(P21,P22),(P31,P32),(P41,P42)), path)
     
 
-def calculate_path(input_data,output):
+def calculate_path(input_data,output,box_cox):
     
     output = output["TT"]
     loss = 0
@@ -387,7 +403,7 @@ def calculate_path(input_data,output):
         S_lat, S_long, D_lat, D_long = rows["Source_Lat"], rows["Source_Long"], rows["Dest_Lat"], rows["Dest_Long"]
         position1 = get_index(S_lat, S_long) 
         position2 = get_index(D_lat, D_long)
-        combined_time, path = path_of_points(position1,position2)
+        combined_time, path = box_cox_path_of_points(position1,position2,box_cox)
         try:
             loss += abs(combined_time - output[idx])
         except:
@@ -423,8 +439,29 @@ def update_weight_matrix(positions,lr):
 
     # deal with vanishing gradients 
 
+def get_error_prone_paths(all_error_prone_paths): 
+    
+    print("Inside path function")
 
-def train_data(r,c):
+    set_data_points = {}
+    for l in all_error_prone_paths:
+        for points in l:
+            for point in points:
+                if point not in set_data_points:
+                    set_data_points[point]=1
+                else:
+                    set_data_points[point]+=1
+    
+    X,Y = [], []
+    for key,data in set_data_points.items():
+        if data>30:
+            X.append(key[0])
+            Y.append(key[1])
+    
+    plt.scatter(X, Y, c ="blue")
+    plt.show()
+
+def train_data(r,c,box_cox=False):
      
     global Weight_matrix1, Weight_matrix2, Weight_matrix3, Weight_matrix4
     Weight_matrix1 = np.random.random((r,c+1)) # Since first column in input is not needed
@@ -440,16 +477,20 @@ def train_data(r,c):
     
     # Hyperparameters
     global batch_size
-    batch_size, learning_rate, epochs = 128, 0.02, 100 # Choose parameters with minimum loss
+    batch_size, learning_rate, epochs = 64, 0.0025, 10 # Choose parameters with minimum loss
 
     global data_size
     train_percent = 80
     data_size = math.ceil(len(dfInput)*train_percent/100)
+    
 
-    for epoch in range(epochs):
-        total_losses = []
-        for idx in range(0,len(dfInput[:data_size]),batch_size): # Remove slice of 16 afterwards
-            loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size])
+    all_error_prone_paths = []
+    
+    for epoch in range(epochs):    
+        overall_max_loss = 0
+        total_losses, error_prone_path = [], []
+        for idx in range(0,len(dfInput[:data_size]),batch_size): 
+            loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size],box_cox)
             current_loss = loss/batch_size
             total_losses.append(current_loss)
             update_weight_matrix(used_datapoints,learning_rate)
@@ -459,15 +500,29 @@ def train_data(r,c):
             print("=== Current epoch is : {} ===".format(epoch))
             print("Max loss : {}, min loss : {}".format(max(total_losses),min(total_losses)))
             #print("Total_losses are : {}".format(total_losses))
+        
+        if overall_max_loss<current_loss:
+            error_prone_path = used_datapoints
+        
+        all_error_prone_paths.append(error_prone_path)
+    
+    get_error_prone_paths(all_error_prone_paths)
 
 
-def test_error_rate():
+def test_error_rate(box_cox=False):
     
     total_loss = 0
     for idx in range(0,len(dfInput[data_size:]),batch_size):
-        loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size])
+        loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size],box_cox)
         total_loss += loss 
     print("The total L1 loss is : ",total_loss/len(dfInput[data_size:]))
+
+
+def weight_matrix_check():
+    np.savetxt('../data/Final_W1.csv',Weight_matrix1,delimiter=",")
+    np.savetxt('../data/Final_W2.csv',Weight_matrix2,delimiter=",")
+    np.savetxt('../data/Final_W3.csv',Weight_matrix3,delimiter=",")
+    np.savetxt('../data/Final_W4.csv',Weight_matrix4,delimiter=",")
 
 
 def modelflow():
@@ -479,19 +534,21 @@ def modelflow():
     
     # Do not buiild unless needed build_location_matrix(c,r) # avg time to build is 1.4 hours
     
-    global location_df1
-    global location_df2
-    global location_df3
-    global location_df4
+    # Transform to normal distribution with box_cox
+    global l1,l2,l3,l4
+    l1,l2,l3,l4 = main_transformation_function()
+    print("Finished data transformation") 
 
-    location_df1 = pd.read_csv("../data/location_matrix1.csv")
-    location_df2 = pd.read_csv("../data/location_matrix2.csv")
-    location_df3 = pd.read_csv("../data/location_matrix3.csv")
-    location_df4 = pd.read_csv("../data/location_matrix4.csv")
+    global location_df1, location_df2, location_df3, location_df4
+    location_df1 = pd.read_csv("../data/_transformed_location_matrix1.csv")
+    location_df2 = pd.read_csv("../data/_transformed_location_matrix2.csv")
+    location_df3 = pd.read_csv("../data/_transformed_location_matrix3.csv")
+    location_df4 = pd.read_csv("../data/_transformed_location_matrix4.csv")
     
-    train_data(r,c)
-    test_error_rate()
+    train_data(r,c,box_cox=True)
+    test_error_rate() 
     
+    weight_matrix_check()
 
     #total_loss()
     

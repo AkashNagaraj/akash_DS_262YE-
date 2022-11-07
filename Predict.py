@@ -8,7 +8,7 @@ import sklearn
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
-import math
+import math,csv
 from math import radians, cos, sin, asin, sqrt
 import sys, time
 
@@ -27,39 +27,6 @@ CODE SUBMISSION TEMPLATE
 3. Returns:
     a. dfOutput: It is a pandas dataframe that contains the output
 """
-def Sample_EstimatedTravelTime(df, dfInput): # The output of this function will be evaluated
-    # Make changes here. Here is an example model. Participants should come up with their own model.
-    avgSpeed = 20 # Assumption that the average speed of a BMTC bus is 20 km/hour
-    dfOutput = pd.DataFrame() #
-    
-    # Estimate the straight line distance in km between the pairs of input coordinates
-    dfInput.loc[:,'Distance'] = dfInput[['Source_Lat', 'Source_Long', 'Dest_Lat', 'Dest_Long']].apply(lambda x: distance((x[0],x[1]),(x[2],x[3])),axis=1)
-    dfInput.loc[:,'ETT'] = dfInput['Distance']/avgSpeed
-    dfOutput = dfInput[['Source_Lat', 'Source_Long', 'Dest_Lat', 'Dest_Long','ETT']]
-    return dfOutput 
-  
-def distance(coord1, coord2):     
-    # math module contains a function named radians which converts from degrees to radians.
-    lon1 = radians(coord1[1])
-    lon2 = radians(coord2[1])
-    lat1 = radians(coord1[0])
-    lat2 = radians(coord2[0])
-      
-    # Haversine formula
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
-    c = 2 * asin(sqrt(a))
-    r = 6371
-
-    return(c * r)
-
-
-def total_loss():
-    
-    dfOutput = Sample_EstimatedTravelTime(df, dfInput)    
-    # s = int(len(dfOutput)/16)
-    print("Average loss in baseline model is :",sum(abs(dfOutput['ETT'] - dfGroundTruth['TT']))/len(dfOutput['ETT']))
 
 
 def data_summary():
@@ -114,7 +81,7 @@ def find_location(x_start,x_end,y_start,y_end):
     
     #return round(avg_time_hours*60, 4) # Convert hours to minutes ?
     
-    return((avg_t1,avg_t2,avg_t3,avg_t4))
+    return((avg_t1*60,avg_t2*60,avg_t3*60,avg_t4*60))
 
 
 def convert_coordinates(coords1,coords2):
@@ -278,7 +245,7 @@ def invboxcox(y,ld):
         return(relu(np.exp(np.log(ld*y+1)/ld))) 
 
 
-def box_cox_path_of_points(X,Y, box_cox):
+def box_cox_path_of_points(X,Y):
 
     location_matrix1 = np.array(location_df1)    
     location_matrix2 = np.array(location_df2)
@@ -391,7 +358,7 @@ def box_cox_path_of_points(X,Y, box_cox):
     return(time_taken((P11,P12),(P21,P22),(P31,P32),(P41,P42)), path)
     
 
-def calculate_path(input_data,output,box_cox):
+def calculate_path(input_data,output):
     
     output = output["TT"]
     loss = 0
@@ -403,7 +370,7 @@ def calculate_path(input_data,output,box_cox):
         S_lat, S_long, D_lat, D_long = rows["Source_Lat"], rows["Source_Long"], rows["Dest_Lat"], rows["Dest_Long"]
         position1 = get_index(S_lat, S_long) 
         position2 = get_index(D_lat, D_long)
-        combined_time, path = box_cox_path_of_points(position1,position2,box_cox)
+        combined_time, path = box_cox_path_of_points(position1,position2)
         try:
             loss += abs(combined_time - output[idx])
         except:
@@ -461,7 +428,7 @@ def get_error_prone_paths(all_error_prone_paths):
     plt.scatter(X, Y, c ="blue")
     plt.show()
 
-def train_data(r,c,box_cox=False):
+def train_data(r,c):
      
     global Weight_matrix1, Weight_matrix2, Weight_matrix3, Weight_matrix4
     Weight_matrix1 = np.random.random((r,c+1)) # Since first column in input is not needed
@@ -477,12 +444,11 @@ def train_data(r,c,box_cox=False):
     
     # Hyperparameters
     global batch_size
-    batch_size, learning_rate, epochs = 64, 0.0025, 10 # Choose parameters with minimum loss
+    batch_size, learning_rate, epochs = 64, 0.001, 100 # Choose parameters with minimum loss
 
     global data_size
     train_percent = 80
     data_size = math.ceil(len(dfInput)*train_percent/100)
-    
 
     all_error_prone_paths = []
     
@@ -490,7 +456,7 @@ def train_data(r,c,box_cox=False):
         overall_max_loss = 0
         total_losses, error_prone_path = [], []
         for idx in range(0,len(dfInput[:data_size]),batch_size): 
-            loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size],box_cox)
+            loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size])
             current_loss = loss/batch_size
             total_losses.append(current_loss)
             update_weight_matrix(used_datapoints,learning_rate)
@@ -506,23 +472,23 @@ def train_data(r,c,box_cox=False):
         
         all_error_prone_paths.append(error_prone_path)
     
-    get_error_prone_paths(all_error_prone_paths)
+    #get_error_prone_paths(all_error_prone_paths)
 
 
-def test_error_rate(box_cox=False):
+def estimated_time_travelled(df, dfInput):
     
     total_loss = 0
-    for idx in range(0,len(dfInput[data_size:]),batch_size):
-        loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size],box_cox)
+    for idx in range(data_size,len(dfInput),batch_size):
+        loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size])
         total_loss += loss 
     print("The total L1 loss is : ",total_loss/len(dfInput[data_size:]))
 
 
-def weight_matrix_check():
-    np.savetxt('../data/Final_W1.csv',Weight_matrix1,delimiter=",")
-    np.savetxt('../data/Final_W2.csv',Weight_matrix2,delimiter=",")
-    np.savetxt('../data/Final_W3.csv',Weight_matrix3,delimiter=",")
-    np.savetxt('../data/Final_W4.csv',Weight_matrix4,delimiter=",")
+def store_matrix_check():
+    np.savetxt('stored_weights/Final_W1.csv',Weight_matrix1,delimiter=",")
+    np.savetxt('stored_weights/Final_W2.csv',Weight_matrix2,delimiter=",")
+    np.savetxt('stored_weights/Final_W3.csv',Weight_matrix3,delimiter=",")
+    np.savetxt('stored_weights/Final_W4.csv',Weight_matrix4,delimiter=",")
 
 
 def modelflow():
@@ -532,25 +498,31 @@ def modelflow():
     global r,c 
     r, c = 32,32
     
-    # Do not buiild unless needed build_location_matrix(c,r) # avg time to build is 1.4 hours
+    #build_location_matrix(c,r) # avg time to build is 1.4 hours
     
     # Transform to normal distribution with box_cox
     global l1,l2,l3,l4
     l1,l2,l3,l4 = main_transformation_function()
-    print("Finished data transformation") 
+    l_df = pd.DataFrame([l1,l2,l3,l4])
+    l_df.to_csv("stored_weights/lambda_values.csv")
 
     global location_df1, location_df2, location_df3, location_df4
+    location_df1 = pd.read_csv("../data/location_matrix1.csv")
+    location_df2 = pd.read_csv("../data/location_matrix2.csv")
+    location_df3 = pd.read_csv("../data/location_matrix3.csv")
+    location_df4 = pd.read_csv("../data/location_matrix4.csv")
+
+    """    
     location_df1 = pd.read_csv("../data/_transformed_location_matrix1.csv")
     location_df2 = pd.read_csv("../data/_transformed_location_matrix2.csv")
     location_df3 = pd.read_csv("../data/_transformed_location_matrix3.csv")
     location_df4 = pd.read_csv("../data/_transformed_location_matrix4.csv")
+    """
     
-    train_data(r,c,box_cox=True)
-    test_error_rate() 
+    train_data(r,c)
+    estimated_time_travelled(df,dfInput) 
     
-    weight_matrix_check()
-
-    #total_loss()
+    store_matrix_check()
     
 
 modelflow()

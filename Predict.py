@@ -3,6 +3,7 @@ from data_transformation import main_transformation_function
 import more_itertools
 import pandas as pd
 import geopy.distance
+from numpy import genfromtxt
 import numpy as np
 import sklearn
 from sklearn.model_selection import train_test_split
@@ -245,12 +246,20 @@ def invboxcox(y,ld):
         return(relu(np.exp(np.log(ld*y+1)/ld))) 
 
 
-def box_cox_path_of_points(X,Y):
+def box_cox_path_of_points(X,Y,train):
 
+    
     location_matrix1 = np.array(location_df1)    
     location_matrix2 = np.array(location_df2)
     location_matrix3 = np.array(location_df3)
     location_matrix4 = np.array(location_df4)
+        
+    if not train:
+        globals()['Weight_matrix1'] = genfromtxt('stored_weights/Final_W1.csv', delimiter=',')
+        globals()['Weight_matrix2'] = genfromtxt('stored_weights/Final_W2.csv', delimiter=',')
+        globals()['Weight_matrix3'] = genfromtxt('stored_weights/Final_W3.csv', delimiter=',')
+        globals()['Weight_matrix4'] = genfromtxt('stored_weights/Final_W4.csv', delimiter=',')
+        globals()['time_weights'] = genfromtxt('stored_weights/time_weights.csv', delimiter=',').reshape(1,-1)
 
     assert location_matrix1.shape==location_matrix2.shape==location_matrix3.shape==location_matrix4.shape == (r,c+1) , "The location matrix is of the wrong shape"
 
@@ -264,10 +273,7 @@ def box_cox_path_of_points(X,Y):
     path = [] # Used to keep track of the datapoints that were used 
     
     P11,P12,P21,P22,P31,P32,P41,P42 = 0,0,0,0,0,0,0,0
-    
 
-    #l1,l2,l3,l4 = 0.1,0.1,0.1,0.1
-    
     try:
         P11 += np.square(invboxcox(location_matrix1[r1,c1]*Weight_matrix1[r1,c1],l1))
         P12 += np.square(invboxcox(location_matrix1[r2,c2]*Weight_matrix1[r2,c2],l1))
@@ -358,7 +364,7 @@ def box_cox_path_of_points(X,Y):
     return(time_taken((P11,P12),(P21,P22),(P31,P32),(P41,P42)), path)
     
 
-def calculate_path(input_data,output):
+def calculate_path(input_data,output,train):
     
     output = output["TT"]
     loss = 0
@@ -370,7 +376,7 @@ def calculate_path(input_data,output):
         S_lat, S_long, D_lat, D_long = rows["Source_Lat"], rows["Source_Long"], rows["Dest_Lat"], rows["Dest_Long"]
         position1 = get_index(S_lat, S_long) 
         position2 = get_index(D_lat, D_long)
-        combined_time, path = box_cox_path_of_points(position1,position2)
+        combined_time, path = box_cox_path_of_points(position1,position2,train)
         try:
             loss += abs(combined_time - output[idx])
         except:
@@ -386,6 +392,7 @@ def update_weight_matrix(positions,lr):
     
     # Caclulate specific weights from all weights
     for (r,c) in positions:
+        
         L.append(Weight_matrix1[r,c])
         L.append(Weight_matrix2[r,c])
         L.append(Weight_matrix3[r,c])
@@ -429,34 +436,26 @@ def get_error_prone_paths(all_error_prone_paths):
     plt.show()
 
 def train_data(r,c):
-     
+    
+    #np.random.seed(5)
+
     global Weight_matrix1, Weight_matrix2, Weight_matrix3, Weight_matrix4
     Weight_matrix1 = np.random.random((r,c+1)) # Since first column in input is not needed
     Weight_matrix2 = np.random.random((r,c+1))
     Weight_matrix3 = np.random.random((r,c+1))
     Weight_matrix4 = np.random.random((r,c+1))
     
-    global time_weights # Since afternoon, evening and night could have different impact on the vehicles speed and hence time taken
-    time_weights = np.random.random((1,4))
 
     #features = dfInput[["Source_Lat","Source_Long","Dest_Lat","Dest_Long"]]
     time_taken = dfGroundTruth["TT"]
     
-    # Hyperparameters
-    global batch_size
-    batch_size, learning_rate, epochs = 64, 0.001, 100 # Choose parameters with minimum loss
-
-    global data_size
-    train_percent = 80
-    data_size = math.ceil(len(dfInput)*train_percent/100)
-
     all_error_prone_paths = []
     
     for epoch in range(epochs):    
         overall_max_loss = 0
         total_losses, error_prone_path = [], []
         for idx in range(0,len(dfInput[:data_size]),batch_size): 
-            loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size])
+            loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size],train=True)
             current_loss = loss/batch_size
             total_losses.append(current_loss)
             update_weight_matrix(used_datapoints,learning_rate)
@@ -479,7 +478,7 @@ def estimated_time_travelled(df, dfInput):
     
     total_loss = 0
     for idx in range(data_size,len(dfInput),batch_size):
-        loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size])
+        loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size],train=False)
         total_loss += loss 
     print("The total L1 loss is : ",total_loss/len(dfInput[data_size:]))
 
@@ -489,16 +488,17 @@ def store_matrix_check():
     np.savetxt('stored_weights/Final_W2.csv',Weight_matrix2,delimiter=",")
     np.savetxt('stored_weights/Final_W3.csv',Weight_matrix3,delimiter=",")
     np.savetxt('stored_weights/Final_W4.csv',Weight_matrix4,delimiter=",")
+    np.savetxt('stored_weights/time_weights.csv',time_weights,delimiter=",")
 
 
 def modelflow():
     
-    #data_summary() 
+    # data_summary() 
     
     global r,c 
     r, c = 32,32
     
-    #build_location_matrix(c,r) # avg time to build is 1.4 hours
+    # build_location_matrix(c,r) # avg time to build is 1.4 hours
     
     # Transform to normal distribution with box_cox
     global l1,l2,l3,l4
@@ -507,22 +507,35 @@ def modelflow():
     l_df.to_csv("stored_weights/lambda_values.csv")
 
     global location_df1, location_df2, location_df3, location_df4
+   
+    """
     location_df1 = pd.read_csv("../data/location_matrix1.csv")
     location_df2 = pd.read_csv("../data/location_matrix2.csv")
     location_df3 = pd.read_csv("../data/location_matrix3.csv")
     location_df4 = pd.read_csv("../data/location_matrix4.csv")
+    """ 
 
-    """    
     location_df1 = pd.read_csv("../data/_transformed_location_matrix1.csv")
     location_df2 = pd.read_csv("../data/_transformed_location_matrix2.csv")
     location_df3 = pd.read_csv("../data/_transformed_location_matrix3.csv")
     location_df4 = pd.read_csv("../data/_transformed_location_matrix4.csv")
-    """
     
+    
+    global data_size
+    train_percent = 80
+    data_size = math.ceil(len(dfInput)*train_percent/100)
+    
+    # Hyperparameters
+    global batch_size, learning_rate, epochs
+    batch_size, learning_rate, epochs = 32, 0.003, 70 # Choose parameters with minimum loss
+    
+    global time_weights # Since afternoon, evening and night could have different impact on the vehicles speed and hence time taken
+    time_weights = np.random.random((1,4))
+
     train_data(r,c)
-    estimated_time_travelled(df,dfInput) 
-    
     store_matrix_check()
     
-
+    estimated_time_travelled(df,dfInput) 
+    
+    
 modelflow()

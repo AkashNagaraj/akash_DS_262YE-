@@ -1,48 +1,27 @@
-batch = 64
-r, c = 64, 50
-batch_size, learning_rate, epochs = 64, 0.05, 200
-Max loss : 41.46090629588944, min loss : 9.984050881755314
-Max loss : 36.217491088400685, min loss : 11.03461825944963
-
-batch = 64
-r, c = 64, 50
-Max loss : 45.94866270910356, min loss : 9.85875825513018
-
+---------------------
+batch_size, learning_rate, transform = 64, 0.005, True
+best iter = 60
+The total L1 loss is :  14.69664988614241
+batch = 32, best iter = 40
+Max loss : 16.654598920038772, min loss : 9.776548428062796
+---------------------
+batch_size, learning_rate, transform = 64, 0.004, True
+No learning
+batch = 32, best iter = 40 
+Max loss : 17.832037310191325, min loss : 6.491976537779217
+----------------------
+batch_size, learning_rate, transform = 64, 0.003, True
+best iter = 70
+Max loss : 26.55935983473855, min loss : 5.8563985973461925  
 batch = 32
-r,c = 32,32
-Max loss : 37.48190716570384, min loss : 9.6323393163836
-Max loss : 27.169908465786555, min loss : 10.209884401303501
-Max loss : 31.17294109413033, min loss : 8.57781573470832    
+no learning
+----------------------
+batch_size, learning_rate, transform = 64, 0.002, True
+best iter = 115
+The total L1 loss is :  11.796419819016345
 
-Box-cox=False
-batch_size, learning_rate, epochs = 64, 0.05, 45 
-Max loss : 45.678137411070686, min loss : 9.696775643629001
-The total L1 loss is :  10.410918158547167
 
-batch_size=32, box_cox = False
-Max loss : 45.3316378265025, min loss : 9.483527170503347
-The total L1 loss is :  10.65943883475897
+batch_size, learning_rate, transform = 64, 0.001, True
+iter = 175
+Max loss : 25.643090057227255, min loss : 5.9805099226479514
 
-batch_size = 128, box_cox = False
-Max loss : 44.344356840111864, min loss : 10.621283646718691
-The total L1 loss is :  10.05616580259075
-
-box_cox = True
-batch_size, learning_rate, epochs = 64, 0.001, 100
-Max loss : 48.35795596498107, min loss : 10.04080661664231
-The total L1 loss is :  12.74412767699917
-
-batch_size, learning_rate, epochs = 64, 0.001, 150
-Max loss : 42.400821023286724, min loss : 8.321146951970789
-The total L1 loss is :  10.53619412724534
-
-batch_size, learning_rate, epochs = 64, 0.001, 200
-Max loss : 33.50429122529046, min loss : 6.406622394556184
-The total L1 loss is :  8.41847467091663
-
-Same as above but lambda was obtained and passed
-Max loss : 34.6984600099195, min loss : 6.6332674170585895
-The total L1 loss is :  8.66549338874402
-
-Observations - 
-Increase batch_size till 128

@@ -4,24 +4,37 @@ best iter = 60
 The total L1 loss is :  14.69664988614241
 batch = 32, best iter = 40
 Max loss : 16.654598920038772, min loss : 9.776548428062796
+
+Normal Distr
+=== Current epoch is : 35 ===
+Max loss : 15.506272996277335, min loss : 9.900935380005714
 ---------------------
 batch_size, learning_rate, transform = 64, 0.004, True
 No learning
 batch = 32, best iter = 40 
 Max loss : 17.832037310191325, min loss : 6.491976537779217
+
+=== Current epoch is : 35 ===
+Max loss : 19.957953056056496, min loss : 13.281650025043376
 ----------------------
 batch_size, learning_rate, transform = 64, 0.003, True
 best iter = 70
 Max loss : 26.55935983473855, min loss : 5.8563985973461925  
 batch = 32
 no learning
+
+*** The total L1 loss is :  11.817386283239303
+
 ----------------------
 batch_size, learning_rate, transform = 64, 0.002, True
 best iter = 115
 The total L1 loss is :  11.796419819016345
-
-
+best iter = 90
+Max loss : 15.986267506501571, min loss : 8.486200111213698
+----------------------
 batch_size, learning_rate, transform = 64, 0.001, True
 iter = 175
 Max loss : 25.643090057227255, min loss : 5.9805099226479514
+best iter = 180
+Max loss : 16.47781078568251, min loss : 9.861084516748615
 

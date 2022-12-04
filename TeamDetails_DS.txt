@@ -1,0 +1,9 @@
+Fill in the details (should be same as those while registering for CNI Hackathon):
+
+Team Name:
+Hari Seldon
+
+Team Member 1: (Assumed to be the team lead, by default)
+Name: Akash Nagaraj
+Email ID: akashnagaraj@science.christuniversity.in
+

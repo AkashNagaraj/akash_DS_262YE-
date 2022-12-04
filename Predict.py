@@ -440,10 +440,10 @@ def train_data(r,c):
     #np.random.seed(5)
 
     global Weight_matrix1, Weight_matrix2, Weight_matrix3, Weight_matrix4
-    Weight_matrix1 = np.random.random((r,c+1)) # Since first column in input is not needed
-    Weight_matrix2 = np.random.random((r,c+1))
-    Weight_matrix3 = np.random.random((r,c+1))
-    Weight_matrix4 = np.random.random((r,c+1))
+    Weight_matrix1 = np.random.normal(0,1,(r,c+1)) # Since first column in input is not needed
+    Weight_matrix2 = np.random.normal(0,1,(r,c+1))
+    Weight_matrix3 = np.random.normal(0,1,(r,c+1))
+    Weight_matrix4 = np.random.normal(0,1,(r,c+1))
     
 
     #features = dfInput[["Source_Lat","Source_Long","Dest_Lat","Dest_Long"]]
@@ -527,13 +527,13 @@ def modelflow():
     
     # Hyperparameters
     global batch_size, learning_rate, epochs
-    batch_size, learning_rate, epochs = 32, 0.003, 70 # Choose parameters with minimum loss
+    batch_size, learning_rate, epochs = 64, 0.002, 90 # Choose parameters with minimum loss
     
     global time_weights # Since afternoon, evening and night could have different impact on the vehicles speed and hence time taken
-    time_weights = np.random.random((1,4))
+    time_weights = np.random.normal(0,1,(1,4)) #np.random.random((1,4))
 
-    train_data(r,c)
-    store_matrix_check()
+    #train_data(r,c)
+    #store_matrix_check()
     
     estimated_time_travelled(df,dfInput) 
     

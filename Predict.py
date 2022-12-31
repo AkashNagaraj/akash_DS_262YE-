@@ -13,10 +13,10 @@ import math,csv
 from math import radians, cos, sin, asin, sqrt
 import sys, time
 
-df = pd.read_parquet('./../data/BMTC.parquet.gzip', engine='pyarrow') # This command loads BMTC data into a dataframe. 
+df = pd.read_parquet('data/BMTC.parquet.gzip', engine='pyarrow') # This command loads BMTC data into a dataframe. 
 
-dfInput = pd.read_csv('./../data/Input.csv')
-dfGroundTruth = pd.read_csv('./../data/GroundTruth.csv') 
+dfInput = pd.read_csv('data/Input.csv')
+dfGroundTruth = pd.read_csv('data/GroundTruth.csv') 
 # NOTE: The file GroundTruth.csv is for participants to assess the performance their own codes
 
 """
@@ -43,9 +43,12 @@ def find_location(x_start,x_end,y_start,y_end):
     temp = pd.DataFrame(df[df['Longitude'].between(x_start,x_end,inclusive="both")]) # Includes the start and end range, add neither to exclude them    
 
     # Use avg_time = avg_speed/distance
-    avg_speed = sum(temp[temp['Latitude'].between(y_start,y_end,inclusive="both")]['Speed'])/len(temp['Speed'])
-    avg_time_hours = avg_speed / distance
-    
+    speed = sum(temp[temp['Latitude'].between(y_start,y_end,inclusive="both")]['Speed'])#/len(temp['Speed'])
+    try:
+        avg_time_hours = (distance*len(temp[temp['Latitude'].between(y_start,y_end,inclusive="both")]['Speed'])) / speed
+    except:
+        avg_time_hours = 0
+
     # Four lists to store speeds at different time intervals, hoping to capture variability
     S1,S2,S3,S4=[],[],[],[]
     row = temp[temp['Latitude'].between(y_start,y_end,inclusive="both")][['Timestamp','Speed']]
@@ -135,7 +138,7 @@ def build_location_matrix(r=32,c=32):
     for i in range(0,r): # Traverse 'r' rows/ latitudes
         column_data1, column_data2, column_data3, column_data4, longitude = [], [], [], [], []
         for j in range(0,c): # Traverse 'c' columns/ longitudes
-            val1,val2,val3,val4 = find_location(lat1+single_col_size*i,lat1+single_col_size*(i+1),long1-single_row_size*(j+1),long1-single_row_size*(j))
+            val1,val2,val3,val4 = find_location(lat1+single_col_size*i,lat1+single_col_size*(i+1),long1-single_row_size*(j),long1-single_row_size*(j+1))
             column_data1.append(val1)
             column_data2.append(val2)
             column_data3.append(val3)
@@ -153,22 +156,22 @@ def build_location_matrix(r=32,c=32):
     print("Exited For Loop")
     
     location_dataframe1 = pd.DataFrame(data=np.array(location_matrix1).transpose(),columns=latitude,index=longitude) 
-    location_dataframe1.to_csv('../data/location_matrix1.csv')
+    location_dataframe1.to_csv('data/location_matrix1.csv')
     del location_dataframe1
     print("Built matrix1")
     
     location_dataframe2 = pd.DataFrame(data=np.array(location_matrix2).transpose(),columns=latitude,index=longitude) 
-    location_dataframe2.to_csv('../data/location_matrix2.csv')
+    location_dataframe2.to_csv('data/location_matrix2.csv')
     del location_dataframe2
     print("Built matrix2")
     
     location_dataframe3 = pd.DataFrame(data=np.array(location_matrix3).transpose(),columns=latitude,index=longitude)
-    location_dataframe3.to_csv('../data/location_matrix3.csv')
+    location_dataframe3.to_csv('data/location_matrix3.csv')
     del location_dataframe3
     print("Built matrix3")
     
     location_dataframe4 = pd.DataFrame(data=np.array(location_matrix4).transpose(),columns=latitude,index=longitude)
-    location_dataframe4.to_csv('../data/location_matrix4.csv')
+    location_dataframe4.to_csv('data/location_matrix4.csv')
     del location_dataframe4
     print("Built matrix4")
 
@@ -247,7 +250,6 @@ def invboxcox(y,ld):
 
 
 def box_cox_path_of_points(X,Y,train):
-
     
     location_matrix1 = np.array(location_df1)    
     location_matrix2 = np.array(location_df2)
@@ -365,11 +367,11 @@ def box_cox_path_of_points(X,Y,train):
     
 
 def calculate_path(input_data,output,train):
-    
     output = output["TT"]
     loss = 0
 
     all_paths = []
+    predicted_time, actual_time = [], []
     for idx,rows in input_data.iterrows():#index
         # The below code calculates the positions in the matrix and then multiplies the weights of them to a weights matrix
         # To improve this we can be selective positions, CNN bias
@@ -377,12 +379,21 @@ def calculate_path(input_data,output,train):
         position1 = get_index(S_lat, S_long) 
         position2 = get_index(D_lat, D_long)
         combined_time, path = box_cox_path_of_points(position1,position2,train)
+        
         try:
             loss += abs(combined_time - output[idx])
         except:
             print("len input : {}, len output : {} ".format(len(dfInput),len(output)))
         all_paths.append(path)
-    return loss, all_paths
+
+        # If it is testing
+        if not train:
+            #print(actual_time,predicted_time)
+            actual_time.append(output[idx])
+            predicted_time.append(combined_time)
+
+
+    return loss, all_paths, actual_time, predicted_time
     
 
 def update_weight_matrix(positions,lr):
@@ -455,7 +466,7 @@ def train_data(r,c):
         overall_max_loss = 0
         total_losses, error_prone_path = [], []
         for idx in range(0,len(dfInput[:data_size]),batch_size): 
-            loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size],train=True)
+            loss, used_datapoints,_,_ = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size],train=True)
             current_loss = loss/batch_size
             total_losses.append(current_loss)
             update_weight_matrix(used_datapoints,learning_rate)
@@ -477,9 +488,20 @@ def train_data(r,c):
 def estimated_time_travelled(df, dfInput):
     
     total_loss = 0
+    print("The test data_size is : {}".format(len(dfInput) - data_size))
+    A_T,P_T = [],[]
+    
     for idx in range(data_size,len(dfInput),batch_size):
-        loss, used_datapoints = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size],train=False)
+        loss, used_datapoints, actual_time, predicted_time = calculate_path(dfInput[idx:idx+batch_size],dfGroundTruth[idx:idx+batch_size],train=False)
         total_loss += loss 
+        A_T += actual_time
+        P_T += predicted_time
+        
+    assert len(A_T)==len(P_T)==len(dfInput) - data_size,"The test sizes do not match"
+    
+    dfOutput = pd.DataFrame({'actual_time':A_T,'predicted_time':P_T})
+    dfOutput.to_csv("data/Output.csv")
+
     print("The total L1 loss is : ",total_loss/len(dfInput[data_size:]))
 
 
@@ -493,47 +515,46 @@ def store_matrix_check():
 
 def modelflow():
     
-    # data_summary() 
+    #data_summary() 
     
     global r,c 
     r, c = 32,32
     
-    # build_location_matrix(c,r) # avg time to build is 1.4 hours
+    #build_location_matrix(c,r) # avg time to build is 1.4 hours
+
+    global location_df1, location_df2, location_df3, location_df4
+   
     
+    location_df1 = pd.read_csv("data/location_matrix1.csv")
+    location_df2 = pd.read_csv("data/location_matrix2.csv")
+    location_df3 = pd.read_csv("data/location_matrix3.csv")
+    location_df4 = pd.read_csv("data/location_matrix4.csv")
+    
+
     # Transform to normal distribution with box_cox
     global l1,l2,l3,l4
     l1,l2,l3,l4 = main_transformation_function()
     l_df = pd.DataFrame([l1,l2,l3,l4])
     l_df.to_csv("stored_weights/lambda_values.csv")
-
-    global location_df1, location_df2, location_df3, location_df4
-   
     """
-    location_df1 = pd.read_csv("../data/location_matrix1.csv")
-    location_df2 = pd.read_csv("../data/location_matrix2.csv")
-    location_df3 = pd.read_csv("../data/location_matrix3.csv")
-    location_df4 = pd.read_csv("../data/location_matrix4.csv")
-    """ 
-
-    location_df1 = pd.read_csv("../data/_transformed_location_matrix1.csv")
-    location_df2 = pd.read_csv("../data/_transformed_location_matrix2.csv")
-    location_df3 = pd.read_csv("../data/_transformed_location_matrix3.csv")
-    location_df4 = pd.read_csv("../data/_transformed_location_matrix4.csv")
-    
-    
+    location_df1 = pd.read_csv("data/_transformed_location_matrix1.csv")
+    location_df2 = pd.read_csv("data/_transformed_location_matrix2.csv")
+    location_df3 = pd.read_csv("data/_transformed_location_matrix3.csv")
+    location_df4 = pd.read_csv("data/_transformed_location_matrix4.csv")
+    """
     global data_size
     train_percent = 80
     data_size = math.ceil(len(dfInput)*train_percent/100)
     
     # Hyperparameters
     global batch_size, learning_rate, epochs
-    batch_size, learning_rate, epochs = 64, 0.002, 90 # Choose parameters with minimum loss
+    batch_size, learning_rate, epochs = 64, 0.002, 80 # Choose parameters with minimum loss
     
     global time_weights # Since afternoon, evening and night could have different impact on the vehicles speed and hence time taken
     time_weights = np.random.normal(0,1,(1,4)) #np.random.random((1,4))
 
-    #train_data(r,c)
-    #store_matrix_check()
+    train_data(r,c)
+    store_matrix_check()
     
     estimated_time_travelled(df,dfInput) 
     

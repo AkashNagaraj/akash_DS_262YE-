@@ -1,0 +1,4 @@
+geopy
+statsmodels
+pyarrow
+pandas
